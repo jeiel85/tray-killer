@@ -18,7 +18,8 @@ namespace TrayKiller.Core
 
         static string MutexName => @"Local\TrayKiller." + AppPaths.InstanceSuffix + ".instance";
         static string SignalName => @"Local\TrayKiller." + AppPaths.InstanceSuffix + ".signal";
-        static SecurityIdentifier Everyone => new SecurityIdentifier(WellKnownSidType.WorldSid, null);
+        /// <summary>Only this user's own processes (elevated or not) may open the instance objects.</summary>
+        static SecurityIdentifier CurrentUser => WindowsIdentity.GetCurrent().User;
 
         public static bool TryAcquire(int waitMs)
         {
@@ -26,7 +27,7 @@ namespace TrayKiller.Core
             while (true)
             {
                 var sec = new MutexSecurity();
-                sec.AddAccessRule(new MutexAccessRule(Everyone, MutexRights.FullControl, AccessControlType.Allow));
+                sec.AddAccessRule(new MutexAccessRule(CurrentUser, MutexRights.FullControl, AccessControlType.Allow));
                 bool created;
                 Mutex m;
                 try { m = new Mutex(true, MutexName, out created, sec); }
@@ -86,7 +87,7 @@ namespace TrayKiller.Core
         public static void Listen(Action<string> onCommand)
         {
             var sec = new EventWaitHandleSecurity();
-            sec.AddAccessRule(new EventWaitHandleAccessRule(Everyone, EventWaitHandleRights.FullControl, AccessControlType.Allow));
+            sec.AddAccessRule(new EventWaitHandleAccessRule(CurrentUser, EventWaitHandleRights.FullControl, AccessControlType.Allow));
             bool created;
             signal = new EventWaitHandle(false, EventResetMode.AutoReset, SignalName, out created, sec);
             listener = new Thread(() =>

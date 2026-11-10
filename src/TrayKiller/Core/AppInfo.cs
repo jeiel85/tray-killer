@@ -27,6 +27,8 @@ namespace TrayKiller.Core
         public static bool IsElevated { get; } =
             new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
 
+        public static int SessionId { get; } = Process.GetCurrentProcess().SessionId;
+
         public static bool IsInstalledCopy =>
             string.Equals(Path.GetFullPath(ExePath), Path.GetFullPath(AppPaths.InstalledExe), StringComparison.OrdinalIgnoreCase);
     }
@@ -34,29 +36,47 @@ namespace TrayKiller.Core
     public static class AppPaths
     {
         public static string Profile { get; private set; } = "";
-        public static string DataDir { get; private set; }
         public static bool IsDefaultProfile => Profile.Length == 0;
         public static string InstanceSuffix => IsDefaultProfile ? "default" : Profile;
 
         static string LocalAppData => Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        public static string InstallDir => Path.Combine(LocalAppData, "Programs", "TrayKiller");
+
+        /// <summary>Admin-only install folder. The elevated logon task runs this exe, so a normal user must not be able to replace it.</summary>
+        public static string InstallDir => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "TrayKiller");
         public static string InstalledExe => Path.Combine(InstallDir, AppInfo.ExeName);
+        /// <summary>Where v1.0.x installed itself (user-writable); migrated away from on the first elevated start.</summary>
+        public static string LegacyInstallDir => Path.Combine(LocalAppData, "Programs", "TrayKiller");
+        public static string ProtectedRoot => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "TrayKiller");
+
+        /// <summary>Per-user, user-writable folder: command channel, limited-mode data, test profiles.</summary>
+        public static string LocalDir { get; private set; }
+        /// <summary>Settings, stats, backups. For the elevated default profile this is the admin-only protected store.</summary>
+        public static string DataDir { get; private set; }
+        public static bool IsProtectedStore { get; private set; }
 
         public static string SettingsFile => Path.Combine(DataDir, "settings.json");
         public static string StatsFile => Path.Combine(DataDir, "stats.json");
         public static string ActivityFile => Path.Combine(DataDir, "activity.json");
         public static string BlockedFile => Path.Combine(DataDir, "blocked.json");
-        public static string CommandFile => Path.Combine(DataDir, "command.txt");
         public static string LogDir => Path.Combine(DataDir, "logs");
         public static string BackupDir => Path.Combine(DataDir, "backup");
         public static string UpdateDir => Path.Combine(DataDir, "update");
+        public static string SnapDir => Path.Combine(DataDir, "snaps");
+        public static string CommandFile => Path.Combine(LocalDir, "command.txt");
 
         public static void Init(string profile)
         {
             Profile = new string((profile ?? "").Where(ch => char.IsLetterOrDigit(ch) || ch == '-' || ch == '_').ToArray());
             var root = Path.Combine(LocalAppData, "TrayKiller");
-            DataDir = IsDefaultProfile ? root : Path.Combine(root, "profiles", Profile);
-            Directory.CreateDirectory(DataDir);
+            LocalDir = IsDefaultProfile ? root : Path.Combine(root, "profiles", Profile);
+            Directory.CreateDirectory(LocalDir);
+            DataDir = LocalDir;
+            if (IsDefaultProfile && AppInfo.IsElevated)
+            {
+                // Fail closed: an elevated instance never falls back to user-writable data.
+                DataDir = SecureStore.Prepare();
+                IsProtectedStore = true;
+            }
         }
     }
 

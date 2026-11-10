@@ -34,10 +34,19 @@ namespace TrayKiller
         {
             base.OnStartup(e);
             args = Args.Parse(e.Args);
-            AppPaths.Init(args.Profile);
+            try { AppPaths.Init(args.Profile); }
+            catch (Exception ex)
+            {
+                // Elevated but the admin-only data folder can't be secured: refuse to run rather than trust user-writable data.
+                Log.Error("Data folder setup failed", ex);
+                MessageBox.Show("Tray Killer could not secure its data folder and will exit.\n\n" + ex.Message, AppInfo.Name, MessageBoxButton.OK, MessageBoxImage.Error);
+                Shutdown();
+                return;
+            }
             HookCrashHandlers();
             Log.Info("Tray Killer v" + AppInfo.VersionText + " starting (elevated=" + AppInfo.IsElevated + ", exe=" + AppInfo.ExePath + ", args=" + string.Join(" ", e.Args) + ")");
             Log.Prune(14);
+            Installer.ImportLegacyData();
             settings = Json.Load<AppSettings>(AppPaths.SettingsFile);
             Loc.Init(settings.Language);
 
@@ -78,30 +87,32 @@ namespace TrayKiller
             {
                 try
                 {
+                    bool moving = !AppInfo.IsInstalledCopy;
                     var installed = Installer.Install();
                     settings.SetupDone = true;
+                    if (moving) settings.SelfPromoted = false; // new exe path = new tray icon entry
                     Json.Save(AppPaths.SettingsFile, settings);
-                    if (settings.StartWithWindows)
+                    string error;
+                    if (!StartupManager.Apply(installed, settings.StartWithWindows, out error)) Log.Warn("Startup registration failed: " + error);
+                    if (moving)
                     {
-                        string error;
-                        if (!StartupManager.Enable(installed, out error)) Log.Warn("Startup registration failed: " + error);
-                    }
-                    if (!AppInfo.IsInstalledCopy)
-                    {
+                        // Hand over to the protected copy (keeps "background"/"updated" so an auto-update stays quiet).
+                        var next = (args.Background ? "--background" : "--welcome") + " --wait" + (args.Updated ? " --updated" : "");
                         InstanceChannel.Release();
-                        Process.Start(new ProcessStartInfo(installed, "--welcome --wait") { UseShellExecute = false, WorkingDirectory = AppPaths.InstallDir });
+                        Process.Start(new ProcessStartInfo(installed, next) { UseShellExecute = false, WorkingDirectory = AppPaths.InstallDir });
                         Shutdown();
                         return;
                     }
                 }
-                catch (Exception ex) { Log.Error("Install failed — running in place", ex); }
+                catch (Exception ex)
+                {
+                    Log.Error("Install failed — running in place", ex);
+                    // Never leave an elevated logon task pointing at an exe a normal user could replace.
+                    if (!AppInfo.IsInstalledCopy) StartupManager.Remove();
+                }
             }
 
             Updater.CleanupOld();
-            if (AppInfo.IsElevated)
-            {
-                try { Process.EnterDebugMode(); } catch (Exception ex) { Log.Warn("SeDebugPrivilege: " + ex.Message); }
-            }
 
             Engine = new Engine(settings);
             ViewModel = new MainViewModel(Engine);
@@ -127,8 +138,12 @@ namespace TrayKiller
             Later(5000, PromoteSelf);
             // The logon task starts us at "above normal" priority to win the race; settle down afterwards.
             Later(60000, () => { try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.Normal; } catch { } });
-            if (managed && AppInfo.IsElevated && settings.StartWithWindows && !args.Install)
-                Task.Run(() => { string err; StartupManager.Enable(AppInfo.ExePath, out err); });
+            if (managed && AppInfo.IsElevated && AppInfo.IsInstalledCopy)
+            {
+                // Keep the logon task pointing at this protected copy, and remove the v1.0.x user-writable install.
+                if (!args.Install) Task.Run(() => { string err; StartupManager.Apply(AppInfo.ExePath, settings.StartWithWindows, out err); });
+                Later(15000, Installer.CleanupLegacyInstall);
+            }
         }
 
         void HookCrashHandlers()
@@ -223,7 +238,13 @@ namespace TrayKiller
         {
             var p = (arg ?? "main").Split('|');
             var target = p[0].Trim().ToLowerInvariant();
-            var path = p.Length > 1 ? p[1] : Path.Combine(AppPaths.DataDir, "snap-" + target + ".png");
+            // Commands can come from any of the user's processes: only a bare file name is accepted and the
+            // image always lands in our own data folder (never a caller-chosen path, which an elevated
+            // instance would otherwise write anywhere).
+            var name = p.Length > 1 ? Path.GetFileName(p[1]) : "";
+            if (!name.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) name = "snap-" + target + ".png";
+            Directory.CreateDirectory(AppPaths.SnapDir);
+            var path = Path.Combine(AppPaths.SnapDir, name);
             var scale = p.Length > 2 ? double.Parse(p[2], CultureInfo.InvariantCulture) : 2.0;
             switch (target)
             {
@@ -294,7 +315,8 @@ namespace TrayKiller
         {
             try
             {
-                if (!AppInfo.IsElevated && !args.NoElevate && StartupManager.TaskExists())
+                // Program Files, the machine-wide Apps entry and the protected data need admin rights to remove.
+                if (!AppInfo.IsElevated && !args.NoElevate && AppPaths.IsDefaultProfile)
                 {
                     if (Elevation.Relaunch("--uninstall" + (args.Quiet ? " --quiet" : "") + ProfileArg)) { Shutdown(); return; }
                 }
@@ -306,11 +328,11 @@ namespace TrayKiller
                 InstanceChannel.Send("exit");
                 InstanceChannel.TryAcquire(15000);
                 int restored = Engine.RestoreEverything(new BlockedStore());
-                string err;
                 if (AppPaths.IsDefaultProfile)
                 {
-                    StartupManager.Disable(out err);
+                    StartupManager.Remove();
                     Installer.RemoveRegistration();
+                    Installer.CleanupLegacyInstall();
                 }
                 InstanceChannel.Release();
                 Log.Info("Uninstalled; restored " + restored + " item(s)");

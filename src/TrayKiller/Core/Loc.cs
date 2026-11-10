@@ -219,8 +219,8 @@ namespace TrayKiller.Core
             A("update.downloading", "v{0} 다운로드 중…", "Downloading v{0}…");
             A("update.failed", "업데이트 확인 실패: {0}", "Update check failed: {0}");
             A("dlg.update.title", "새 버전이 있어요", "Update available");
-            A("dlg.update.portable", "v{0}이 나왔어요. 설치된 위치가 아닌 곳에서 실행 중이라 자동 교체는 하지 않아요. 다운로드 페이지를 열까요?",
-                "Version {0} is out. This copy isn't the installed one, so it won't replace itself. Open the download page?");
+            A("dlg.update.portable", "v{0}이 나왔어요. 자동 교체는 관리자 권한으로 실행 중인 설치본만 해요. 다운로드 페이지를 열까요?",
+                "Version {0} is out. Only the installed copy running with admin rights replaces itself. Open the download page?");
             A("btn.download", "다운로드 페이지", "Open download page");
             A("btn.later", "나중에", "Later");
             A("balloon.update.title", "Tray Killer 업데이트", "Tray Killer update");
@@ -309,6 +309,8 @@ namespace TrayKiller.Core
             A("err.emptyPattern", "실행 파일 이름을 입력해 주세요.", "Enter an executable name.");
             A("err.protected", "Windows 핵심 프로세스({0})는 대상에 넣을 수 없어요.", "Core Windows processes ({0}) can't be targeted.");
             A("err.duplicate", "이미 감시 중인 앱이에요.", "That app is already a target.");
+            A("err.untrustedItem", "예상하지 못한 위치를 가리키는 항목이라 복원하지 않았어요.", "This item points somewhere Tray Killer never blocks, so it wasn't restored.");
+            A("problem.needAdminStartup", "시작 설정을 바꾸려면 관리자 권한이 필요해요.", "Changing startup needs admin rights.");
         }
     }
 

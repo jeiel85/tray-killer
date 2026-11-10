@@ -39,6 +39,7 @@ function Stop-Demo {
     foreach ($a in $apps) { Get-Process ([IO.Path]::GetFileNameWithoutExtension($a.File)) -ErrorAction SilentlyContinue | Stop-Process -Force }
     foreach ($a in $apps) { Remove-ItemProperty $runKey -Name ([IO.Path]::GetFileNameWithoutExtension($a.File)) -ErrorAction SilentlyContinue }
     Get-ChildItem $startup -Filter 'PromoTray*.lnk' -ErrorAction SilentlyContinue | Remove-Item -Force
+    Remove-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\StartupFolder' -Name 'PromoTray.lnk' -ErrorAction SilentlyContinue
     schtasks /Delete /TN $taskName /F 2>$null | Out-Null
     # forget the demo apps in Windows 11's tray icon settings
     Get-ChildItem 'HKCU:\Control Panel\NotifyIconSettings' -ErrorAction SilentlyContinue | ForEach-Object {

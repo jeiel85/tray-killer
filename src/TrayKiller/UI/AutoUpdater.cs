@@ -18,7 +18,8 @@ namespace TrayKiller.UI
         public UpdateInfo Available { get; private set; }
 
         /// <summary>Only the installed copy of the default profile replaces itself.</summary>
-        public static bool CanSelfUpdate => AppPaths.IsDefaultProfile && AppInfo.IsInstalledCopy;
+        /// <summary>Only the elevated, installed copy replaces itself (the install folder is admin-only).</summary>
+        public static bool CanSelfUpdate => AppPaths.IsDefaultProfile && AppInfo.IsInstalledCopy && AppInfo.IsElevated;
 
         public AutoUpdater(App app, Engine engine)
         {
@@ -82,7 +83,7 @@ namespace TrayKiller.UI
                     if (userInitiated && !CanSelfUpdate)
                     {
                         if (Dialog.Confirm(app.MainWin, Loc.T("dlg.update.title"), Loc.F("dlg.update.portable", info.Version), Loc.T("btn.download"), Loc.T("btn.later"), false))
-                            Process.Start(new ProcessStartInfo(info.PageUrl ?? AppInfo.ReleasesUrl) { UseShellExecute = true });
+                            ShellOpen.Unelevated(info.PageUrl ?? AppInfo.ReleasesUrl);
                     }
                     else if (!userInitiated)
                         app.Tray?.Balloon(Loc.T("balloon.update.title"), Loc.F("update.available", info.Version));

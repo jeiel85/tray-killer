@@ -113,6 +113,8 @@ namespace TrayKiller.Core
         public string TaskPath { get; set; }
         public string ServiceName { get; set; }
         public int OldValue { get; set; } = -1;
+        /// <summary>How a StartupFile entry was blocked: "approved" (StartupApproved registry flag) or null (file moved to backup).</summary>
+        public string Method { get; set; }
 
         [ScriptIgnore] public string Key => Kind + "|" + Location + "|" + Name;
 
