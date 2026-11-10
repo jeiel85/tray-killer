@@ -29,7 +29,7 @@ You disable it in Task Manager — it's back tomorrow. You right-click the icon 
 
 **Tray Killer** hunts those apps down for good:
 
-- Kills them **the moment they start**, before they can even show an icon.
+- Kills them **within about a second** of starting, and clears away any icon they managed to show.
 - **Switches off auto-start** in the registry, Startup folders, Task Scheduler and services. It does it again if the app re-registers itself.
 - Wipes the **ghost icon** a force-killed app leaves behind.
 - Starts **before every other tray app** at logon.

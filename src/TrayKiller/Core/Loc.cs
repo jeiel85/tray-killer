@@ -182,7 +182,7 @@ namespace TrayKiller.Core
             A("settings.group.update", "업데이트", "UPDATES");
             A("settings.group.general", "일반", "GENERAL");
             A("settings.realtime", "실시간 감시", "Real-time watch");
-            A("settings.realtime.desc", "대상 앱이 시작되는 순간 바로 종료해요. 트레이에 아이콘이 뜰 틈도 없어요.", "Kills a target the instant it starts — before it can even show an icon.");
+            A("settings.realtime.desc", "대상 앱이 시작되면 1초 안팎에 바로 종료하고, 떠 있던 아이콘도 걷어 내요.", "Kills a target within about a second of starting and clears any icon it showed.");
             A("settings.interval", "정기 청소 주기", "Sweep interval");
             A("settings.interval.desc", "실시간 감시가 놓친 프로세스와 다시 생긴 자동 시작 항목을 주기적으로 정리해요.", "Periodically catches anything real-time watching missed and re-created startup entries.");
             A("int.5", "5초", "5s");
