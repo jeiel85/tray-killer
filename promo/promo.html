@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>Tray Killer promo</title>
+<!-- Render one slide per screenshot:  msedge --headless --screenshot --window-size=W,H "promo.html#t1"
+     #banner 1280x640 · #og 1200x630 · #t1..#t5 1080x1350 (Threads / Instagram 4:5) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<style>
+  :root {
+    --bg: #0b0d12; --surface: #131720; --surface2: #191e29; --border: #232a38;
+    --text: #edf0f6; --muted: #8d95a8; --subtle: #5f6779;
+    --accent: #ff2b5e; --accent2: #ff7a2b; --green: #34d399; --amber: #fbbf24; --purple: #a78bfa; --blue: #60a5fa;
+    --grad: linear-gradient(135deg, var(--accent), var(--accent2));
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--text); font-family: "Pretendard Variable", Pretendard, "Segoe UI", "Malgun Gothic", sans-serif; -webkit-font-smoothing: antialiased; }
+  body { overflow: hidden; }
+  .slide { display: none; position: relative; overflow: hidden; background: var(--bg); }
+  .slide.on { display: block; }
+  .glow { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .55; pointer-events: none; }
+  .grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px); background-size: 48px 48px; mask-image: radial-gradient(ellipse at 30% 30%, #000 0%, transparent 70%); -webkit-mask-image: radial-gradient(ellipse at 30% 30%, #000 0%, transparent 70%); }
+  .brand { display: flex; align-items: center; gap: 14px; font-weight: 800; letter-spacing: -.02em; }
+  .brand img { filter: drop-shadow(0 8px 24px rgba(255,43,94,.45)); }
+  .grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px; background: rgba(255,255,255,.05); border: 1px solid var(--border); color: var(--muted); font-weight: 600; }
+  .pill b { color: var(--text); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 12px var(--green); }
+  .shot { border-radius: 18px; overflow: hidden; border: 1px solid #2a3141; box-shadow: 0 40px 120px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.02), 0 0 80px rgba(255,43,94,.18); background: var(--bg); }
+  .shot img { display: block; width: 100%; }
+  .kicker { font-weight: 700; color: var(--accent); letter-spacing: .02em; }
+  .muted { color: var(--muted); }
+
+  /* ── Banner 1280x640 / OG 1200x630 ── */
+  #banner, #og { width: 1280px; height: 640px; }
+  #og { width: 1200px; height: 630px; }
+  .bn-left { position: absolute; left: 72px; top: 0; bottom: 0; width: 560px; display: flex; flex-direction: column; justify-content: center; z-index: 2; }
+  .bn-left .brand { font-size: 30px; margin-bottom: 30px; }
+  .bn-left .brand img { width: 56px; height: 56px; }
+  .bn-left h1 { font-size: 58px; line-height: 1.16; letter-spacing: -.035em; font-weight: 800; }
+  .bn-left p { margin-top: 22px; font-size: 21px; color: var(--muted); line-height: 1.5; }
+  .bn-left .pills { margin-top: 30px; display: flex; gap: 10px; flex-wrap: wrap; font-size: 15px; }
+  .bn-shot { position: absolute; left: 660px; top: 70px; width: 820px; transform: perspective(1600px) rotateY(-14deg) rotateX(4deg); transform-origin: left center; }
+
+  /* ── Threads 1080x1350 ── */
+  .t { width: 1080px; height: 1350px; }
+  .t .pad { position: absolute; inset: 0; padding: 88px 84px; z-index: 2; display: flex; flex-direction: column; }
+  .t .brand { font-size: 30px; }
+  .t .brand img { width: 52px; height: 52px; }
+  .t h1 { font-size: 86px; line-height: 1.12; letter-spacing: -.04em; font-weight: 850; margin-top: 64px; }
+  .t h2 { font-size: 64px; line-height: 1.15; letter-spacing: -.035em; font-weight: 800; margin-top: 36px; }
+  .t .lead { font-size: 30px; line-height: 1.55; color: var(--muted); margin-top: 28px; letter-spacing: -.01em; }
+  .t .page { position: absolute; right: 84px; top: 96px; font-size: 22px; color: var(--subtle); font-weight: 700; z-index: 3; }
+  .t .foot { margin-top: auto; display: flex; justify-content: space-between; align-items: center; font-size: 24px; color: var(--subtle); font-weight: 600; }
+
+  /* slide 1 */
+  .t1-shot { position: absolute; left: 84px; right: -160px; bottom: -150px; z-index: 1; transform: perspective(1800px) rotateX(10deg) rotateY(-8deg); transform-origin: left bottom; }
+
+  /* slide 2: tray mock */
+  .taskbar { margin-top: 56px; border-radius: 22px; background: #1b1f29; border: 1px solid #2a3141; padding: 22px 26px; display: flex; align-items: center; gap: 18px; box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+  .taskbar .lbl { font-size: 22px; font-weight: 700; width: 92px; color: var(--muted); }
+  .ti { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 22px; color: #fff; position: relative; }
+  .ti.ghost { background: transparent !important; border: 2px dashed #3a4253; color: #3a4253; }
+  .ti.dead::after { content: ""; position: absolute; inset: -6px; border: 3px solid var(--accent); border-radius: 50%; }
+  .ti.dead::before { content: ""; position: absolute; width: 64px; height: 4px; background: var(--accent); transform: rotate(-45deg); border-radius: 2px; z-index: 2; }
+  .tk { width: 46px; height: 46px; }
+  .clock { margin-left: auto; text-align: right; font-size: 18px; color: var(--muted); line-height: 1.3; }
+  .arrow { text-align: center; font-size: 48px; margin: 22px 0; color: var(--subtle); }
+  .bubbles { display: flex; flex-direction: column; gap: 18px; margin-top: 54px; }
+  .bubble { align-self: flex-start; background: var(--surface2); border: 1px solid var(--border); border-radius: 26px 26px 26px 8px; padding: 22px 28px; font-size: 29px; line-height: 1.4; max-width: 86%; }
+  .bubble.me { align-self: flex-end; background: rgba(255,43,94,.13); border-color: rgba(255,43,94,.35); border-radius: 26px 26px 8px 26px; }
+
+  /* slide 3: features */
+  .feats { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 56px; }
+  .feat { background: var(--surface); border: 1px solid var(--border); border-radius: 26px; padding: 34px 32px; }
+  .feat .ic { width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center; font-size: 34px; margin-bottom: 22px; }
+  .feat h3 { font-size: 33px; letter-spacing: -.02em; font-weight: 800; }
+  .feat p { font-size: 23px; line-height: 1.5; color: var(--muted); margin-top: 10px; }
+
+  /* slide 4: screens collage */
+  .collage { position: absolute; left: 84px; right: 84px; top: 440px; bottom: 150px; z-index: 1; }
+  .collage .a { position: absolute; left: 0; top: 0; width: 760px; transform: rotate(-3deg); }
+  .collage .b { position: absolute; right: -40px; top: 250px; width: 460px; transform: rotate(4deg); }
+  .collage .c { position: absolute; left: 40px; bottom: -20px; width: 300px; transform: rotate(-2deg); border-radius: 22px; box-shadow: 0 30px 80px rgba(0,0,0,.7); }
+
+  /* slide 5: CTA */
+  .cta-logo { width: 220px; height: 220px; margin: 120px auto 0; display: block; filter: drop-shadow(0 30px 80px rgba(255,43,94,.55)); }
+  .center { text-align: center; }
+  .btn { display: inline-flex; align-items: center; gap: 14px; margin-top: 54px; padding: 28px 52px; border-radius: 22px; background: var(--grad); font-size: 34px; font-weight: 800; color: #fff; box-shadow: 0 24px 60px rgba(255,43,94,.4); }
+  .links { margin-top: 44px; font-size: 27px; line-height: 1.8; color: var(--muted); }
+  .links b { color: var(--text); font-weight: 700; }
+  .specs { display: flex; gap: 14px; justify-content: center; margin-top: 40px; font-size: 22px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<!-- ───────────── README / GitHub banner ───────────── -->
+<section class="slide" id="banner">
+  <div class="glow" style="width:620px;height:620px;left:-200px;top:-260px;background:#ff2b5e"></div>
+  <div class="glow" style="width:520px;height:520px;right:-160px;bottom:-300px;background:#ff7a2b;opacity:.35"></div>
+  <div class="grid"></div>
+  <div class="bn-left">
+    <div class="brand"><img src="../docs/assets/logo-256.png" alt="" /> Tray Killer</div>
+    <h1>트레이에 눌러앉은<br /><span class="grad">불청객, 이제 그만.</span></h1>
+    <p>켜지는 순간 종료하고, 다시는 자동 시작 못 하게.<br />유령 아이콘까지 깨끗하게 치우는 Windows 트레이 청소기.</p>
+    <div class="pills"><span class="pill"><i class="dot"></i><b>Windows 10 · 11</b></span><span class="pill">무료 · 오픈소스</span><span class="pill">400 KB</span></div>
+  </div>
+  <div class="bn-shot shot"><img src="../docs/assets/screens/dashboard.png" alt="" /></div>
+</section>
+
+<!-- ───────────── Open Graph (landing link preview) ───────────── -->
+<section class="slide" id="og">
+  <div class="glow" style="width:620px;height:620px;left:-200px;top:-260px;background:#ff2b5e"></div>
+  <div class="glow" style="width:520px;height:520px;right:-160px;bottom:-300px;background:#ff7a2b;opacity:.35"></div>
+  <div class="grid"></div>
+  <div class="bn-left" style="left:64px">
+    <div class="brand"><img src="../docs/assets/logo-256.png" alt="" /> Tray Killer</div>
+    <h1 style="font-size:54px">트레이에 눌러앉은<br /><span class="grad">불청객, 이제 그만.</span></h1>
+    <p>켜지는 순간 종료 · 자동 시작 차단 · 유령 아이콘 제거</p>
+  </div>
+  <div class="bn-shot shot" style="left:620px;top:80px;width:780px"><img src="../docs/assets/screens/dashboard.png" alt="" /></div>
+</section>
+
+<!-- ───────────── Threads 1: cover ───────────── -->
+<section class="slide t" id="t1">
+  <div class="glow" style="width:760px;height:760px;left:-260px;top:-300px;background:#ff2b5e"></div>
+  <div class="glow" style="width:600px;height:600px;right:-260px;top:420px;background:#ff7a2b;opacity:.3"></div>
+  <div class="grid"></div>
+  <div class="page">1 / 5</div>
+  <div class="pad">
+    <div class="brand"><img src="../docs/assets/logo-256.png" alt="" /> Tray Killer</div>
+    <h1>트레이에 눌러앉은<br /><span class="grad">불청객,<br />이제 그만.</span></h1>
+    <p class="lead">켜지는 순간 종료하고, 다시는 자동 시작 못 하게.<br />귀찮은 상주 앱을 끝까지 쫓아내는 Windows 앱을 만들었어요.</p>
+  </div>
+  <div class="t1-shot shot"><img src="../docs/assets/screens/dashboard.png" alt="" /></div>
+</section>
+
+<!-- ───────────── Threads 2: the problem ───────────── -->
+<section class="slide t" id="t2">
+  <div class="glow" style="width:700px;height:700px;right:-260px;top:-260px;background:#ff2b5e;opacity:.4"></div>
+  <div class="grid"></div>
+  <div class="page">2 / 5</div>
+  <div class="pad">
+    <div class="kicker" style="font-size:28px">왜 만들었냐면요</div>
+    <h2>설정에서 꺼도<br /><span class="grad">계속 살아나는</span> 그 앱.</h2>
+    <div class="bubbles">
+      <div class="bubble">프로그램 하나 깔았더니 원격 지원 에이전트가 같이 깔렸어요 🙄</div>
+      <div class="bubble">시작 프로그램에서 껐는데… 다음 날 또 트레이에 있음</div>
+      <div class="bubble">아이콘은 우클릭도 안 되고요</div>
+      <div class="bubble me">못 참겠어서 직접 만들었습니다 🎯</div>
+    </div>
+    <div class="taskbar" style="margin-top:64px">
+      <span class="lbl">Before</span>
+      <span class="ti" style="background:#10b981">R</span><span class="ti" style="background:#3b82f6">U</span><span class="ti" style="background:#f59e0b">A</span><span class="ti" style="background:#8b5cf6">P</span><span class="ti ghost">?</span>
+      <span class="clock">오전 9:01<br />2026-11-10</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="taskbar">
+      <span class="lbl" style="color:var(--green)">After</span>
+      <img class="tk" src="../docs/assets/logo-64.png" alt="" />
+      <span class="clock">오전 9:01<br />2026-11-10</span>
+    </div>
+    <div class="foot" style="margin-top:64px"><span>지정만 하면, 나머지는 Tray Killer가.</span><span class="grad" style="font-weight:800">Tray Killer</span></div>
+  </div>
+</section>
+
+<!-- ───────────── Threads 3: features ───────────── -->
+<section class="slide t" id="t3">
+  <div class="glow" style="width:700px;height:700px;left:-280px;top:-200px;background:#ff2b5e;opacity:.42"></div>
+  <div class="glow" style="width:600px;height:600px;right:-300px;bottom:-200px;background:#ff7a2b;opacity:.28"></div>
+  <div class="grid"></div>
+  <div class="page">3 / 5</div>
+  <div class="pad">
+    <div class="kicker" style="font-size:28px">이렇게 쫓아내요</div>
+    <h2>한 번 지정하면<br /><span class="grad">끝까지</span> 지켜요.</h2>
+    <div class="feats">
+      <div class="feat"><div class="ic" style="background:rgba(255,43,94,.14)">⚡</div><h3>실시간 감시</h3><p>시작되는 순간 종료. 아이콘이 뜰 틈도 없어요.</p></div>
+      <div class="feat"><div class="ic" style="background:rgba(255,122,43,.14)">🚫</div><h3>자동 시작 차단</h3><p>레지스트리·시작 폴더·작업 스케줄러·서비스까지.</p></div>
+      <div class="feat"><div class="ic" style="background:rgba(167,139,250,.14)">👻</div><h3>유령 아이콘 제거</h3><p>강제 종료 후 남는 빈 아이콘도 대신 지워요.</p></div>
+      <div class="feat"><div class="ic" style="background:rgba(52,211,153,.14)">🏁</div><h3>가장 먼저 시작</h3><p>로그온 즉시, 다른 트레이 앱보다 먼저 자리 잡기.</p></div>
+      <div class="feat"><div class="ic" style="background:rgba(96,165,250,.14)">♻️</div><h3>원클릭 복원</h3><p>끈 건 전부 백업. 버튼 하나로 원래대로.</p></div>
+      <div class="feat"><div class="ic" style="background:rgba(251,191,36,.14)">🔄</div><h3>자동 업데이트</h3><p>새 버전을 받아 해시 검증 후 스스로 교체.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── Threads 4: screens ───────────── -->
+<section class="slide t" id="t4">
+  <div class="glow" style="width:760px;height:760px;right:-300px;top:-280px;background:#ff2b5e;opacity:.4"></div>
+  <div class="grid"></div>
+  <div class="page">4 / 5</div>
+  <div class="pad">
+    <div class="kicker" style="font-size:28px">실제 화면</div>
+    <h2>무엇을 했는지<br /><span class="grad">투명하게.</span></h2>
+    <p class="lead" style="font-size:27px">언제, 무엇을, 어떻게 처리했는지 전부 기록돼요.</p>
+    <div class="foot"><span>대상 앱 · 활동 기록 · 트레이 메뉴</span><span>Windows 10 / 11</span></div>
+  </div>
+  <div class="collage">
+    <div class="shot a"><img src="../docs/assets/screens/targets.png" alt="" /></div>
+    <div class="shot b"><img src="../docs/assets/screens/activity.png" alt="" /></div>
+    <img class="c" src="../docs/assets/screens/menu.png" alt="" />
+  </div>
+</section>
+
+<!-- ───────────── Threads 5: CTA ───────────── -->
+<section class="slide t" id="t5">
+  <div class="glow" style="width:820px;height:820px;left:130px;top:-160px;background:#ff2b5e;opacity:.38"></div>
+  <div class="glow" style="width:620px;height:620px;left:230px;bottom:-260px;background:#ff7a2b;opacity:.25"></div>
+  <div class="grid"></div>
+  <div class="page">5 / 5</div>
+  <div class="pad center">
+    <img class="cta-logo" src="../docs/assets/logo-512.png" alt="" />
+    <h2 style="margin-top:56px">Tray Killer</h2>
+    <p class="lead" style="margin-top:18px">무료 · 오픈소스(MIT) · 설치 파일 400 KB</p>
+    <div><span class="btn">⬇ 무료로 받기</span></div>
+    <div class="links">
+      <b>github.com/jeiel85/tray-killer</b><br />
+      jeiel85.github.io/tray-killer
+    </div>
+    <div class="specs"><span class="pill">Windows 10 · 11</span><span class="pill">런타임 설치 불필요</span><span class="pill">한국어 · English</span></div>
+  </div>
+</section>
+
+<script>
+  var id = (location.hash || '#banner').slice(1);
+  var el = document.getElementById(id) || document.getElementById('banner');
+  el.classList.add('on');
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+name: Release
+
+# Push a tag like v1.2.3 → builds TrayKiller.exe stamped with that version and publishes it
+# (plus TrayKiller.exe.sha256, which the in-app auto-updater verifies) as a GitHub release.
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: microsoft/setup-msbuild@v2
+      - name: Build
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          ./build.ps1 -Version $version -UseRefPackages
+      - name: Publish release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $notes = "docs/release-notes/$tag.md"
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag dist/TrayKiller.exe dist/TrayKiller.exe.sha256 --clobber
+          } elseif (Test-Path $notes) {
+            gh release create $tag dist/TrayKiller.exe dist/TrayKiller.exe.sha256 --title "Tray Killer $tag" --notes-file $notes --verify-tag
+          } else {
+            gh release create $tag dist/TrayKiller.exe dist/TrayKiller.exe.sha256 --title "Tray Killer $tag" --generate-notes --verify-tag
+          }

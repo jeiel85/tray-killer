@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="ko" data-lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tray Killer — 트레이에 눌러앉은 불청객, 이제 그만.</title>
+<meta name="description" content="지정한 앱을 켜지는 순간 종료하고, 다시는 자동 시작하지 못하게 막는 Windows 트레이 청소기. 무료 · 오픈소스 · 400KB." />
+<meta name="theme-color" content="#0b0d12" />
+<link rel="icon" href="favicon.ico" />
+<link rel="apple-touch-icon" href="assets/logo-256.png" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Tray Killer — 트레이에 눌러앉은 불청객, 이제 그만." />
+<meta property="og:description" content="켜지는 순간 종료 · 자동 시작 차단 · 유령 아이콘 제거. Windows 10/11용 무료 오픈소스 트레이 청소기." />
+<meta property="og:image" content="https://jeiel85.github.io/tray-killer/assets/og.png" />
+<meta property="og:url" content="https://jeiel85.github.io/tray-killer/" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<style>
+  :root {
+    --bg: #0b0d12; --bg2: #0e1117; --surface: #131720; --surface2: #191e29; --border: #222936; --border2: #2c3343;
+    --text: #edf0f6; --muted: #8d95a8; --subtle: #5f6779;
+    --accent: #ff2b5e; --accent2: #ff7a2b; --green: #34d399; --amber: #fbbf24; --purple: #a78bfa; --blue: #60a5fa;
+    --grad: linear-gradient(135deg, var(--accent), var(--accent2));
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: "Pretendard Variable", Pretendard, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif; font-size: 17px; line-height: 1.6; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  a { color: inherit; text-decoration: none; }
+  img { max-width: 100%; display: block; }
+  html[data-lang="ko"] [lang="en"], html[data-lang="en"] [lang="ko"] { display: none !important; }
+  .wrap { width: min(1160px, calc(100% - 32px)); margin: 0 auto; }
+  .grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .muted { color: var(--muted); }
+
+  /* nav */
+  nav { position: sticky; top: 0; z-index: 50; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); background: rgba(11,13,18,.72); border-bottom: 1px solid rgba(255,255,255,.04); }
+  nav .wrap { display: flex; align-items: center; gap: 28px; height: 64px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; letter-spacing: -.02em; }
+  .logo img { width: 30px; height: 30px; }
+  .links { display: flex; gap: 24px; margin-left: 12px; font-size: 15px; color: var(--muted); }
+  .links a:hover { color: var(--text); }
+  .nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .lang { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 3px; }
+  .lang button { background: none; border: 0; color: var(--muted); font: inherit; font-size: 13px; font-weight: 700; padding: 5px 10px; border-radius: 7px; cursor: pointer; }
+  html[data-lang="ko"] .lang [data-set="ko"], html[data-lang="en"] .lang [data-set="en"] { background: var(--surface2); color: var(--text); }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; height: 52px; padding: 0 26px; border-radius: 14px; font-weight: 700; font-size: 16px; border: 1px solid var(--border2); background: var(--surface2); transition: transform .15s ease, box-shadow .15s ease, background .15s; white-space: nowrap; }
+  .btn:hover { transform: translateY(-1px); background: #1f2532; }
+  .btn.primary { background: var(--grad); border: 0; color: #fff; box-shadow: 0 14px 40px rgba(255,43,94,.35); }
+  .btn.primary:hover { box-shadow: 0 18px 50px rgba(255,43,94,.5); }
+  .btn.sm { height: 38px; padding: 0 14px; font-size: 14px; border-radius: 10px; }
+  .btn svg { width: 18px; height: 18px; }
+
+  /* hero */
+  .hero { position: relative; padding: 88px 0 40px; text-align: center; }
+  .hero::before { content: ""; position: absolute; inset: -120px 0 auto; height: 760px; background: radial-gradient(600px 380px at 50% 0%, rgba(255,43,94,.28), transparent 70%), radial-gradient(500px 300px at 80% 40%, rgba(255,122,43,.12), transparent 70%); pointer-events: none; z-index: -1; }
+  .grid-bg { position: absolute; inset: -64px 0 0; z-index: -1; background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px); background-size: 56px 56px; -webkit-mask-image: radial-gradient(ellipse 70% 50% at 50% 10%, #000, transparent 75%); mask-image: radial-gradient(ellipse 70% 50% at 50% 10%, #000, transparent 75%); }
+  .badge { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; background: rgba(255,43,94,.1); border: 1px solid rgba(255,43,94,.28); color: #ff8aa5; font-size: 14px; font-weight: 600; }
+  .badge i { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); }
+  .hero-icon { width: 96px; height: 96px; margin: 28px auto 0; filter: drop-shadow(0 18px 50px rgba(255,43,94,.55)); animation: float 6s ease-in-out infinite; }
+  @keyframes float { 50% { transform: translateY(-8px); } }
+  h1 { font-size: clamp(40px, 7vw, 84px); line-height: 1.08; letter-spacing: -.045em; font-weight: 850; margin-top: 26px; }
+  .sub { margin: 24px auto 0; max-width: 680px; font-size: clamp(17px, 2.2vw, 21px); color: var(--muted); }
+  .cta { margin-top: 36px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .meta { margin-top: 18px; font-size: 14px; color: var(--subtle); }
+  .meta b { color: var(--muted); font-weight: 600; }
+
+  .stage { position: relative; margin: 64px auto 0; max-width: 1080px; }
+  .window { border-radius: 16px; overflow: hidden; border: 1px solid #2a3141; background: var(--bg); box-shadow: 0 50px 140px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.02), 0 0 120px rgba(255,43,94,.16); }
+  .stage .menu { position: absolute; right: -36px; bottom: -48px; width: 250px; filter: drop-shadow(0 30px 60px rgba(0,0,0,.7)); }
+
+  /* sections */
+  section { padding: 110px 0 0; }
+  .eyebrow { color: var(--accent); font-weight: 700; font-size: 15px; letter-spacing: .02em; }
+  h2 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.15; letter-spacing: -.035em; font-weight: 800; margin-top: 10px; }
+  .lead { color: var(--muted); font-size: 18px; margin-top: 16px; max-width: 640px; }
+  .center { text-align: center; } .center .lead { margin-left: auto; margin-right: auto; }
+
+  .pains { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 44px; }
+  .pain { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 26px; }
+  .pain .q { font-size: 30px; }
+  .pain h3 { font-size: 19px; margin-top: 12px; letter-spacing: -.02em; }
+  .pain p { color: var(--muted); font-size: 15.5px; margin-top: 6px; }
+
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 44px; }
+  .feature { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; overflow: hidden; transition: border-color .2s, transform .2s; }
+  .feature:hover { border-color: #3a2230; transform: translateY(-2px); }
+  .feature .ic { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; font-size: 24px; }
+  .feature h3 { font-size: 19px; margin-top: 18px; letter-spacing: -.02em; }
+  .feature p { color: var(--muted); font-size: 15.5px; margin-top: 8px; }
+  .feature code { font-family: "Cascadia Mono", Consolas, monospace; font-size: 13px; background: var(--surface2); border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; color: #c9cfdb; }
+
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 44px; counter-reset: s; }
+  .step { background: linear-gradient(180deg, var(--surface), var(--bg2)); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; }
+  .step .n { width: 36px; height: 36px; border-radius: 10px; background: var(--grad); display: grid; place-items: center; font-weight: 800; color: #fff; }
+  .step h3 { margin-top: 16px; font-size: 20px; letter-spacing: -.02em; }
+  .step p { color: var(--muted); font-size: 15.5px; margin-top: 6px; }
+
+  .tabs { display: inline-flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); margin-top: 36px; flex-wrap: wrap; justify-content: center; }
+  .tabs button { background: none; border: 0; font: inherit; color: var(--muted); font-weight: 700; font-size: 15px; padding: 9px 18px; border-radius: 9px; cursor: pointer; }
+  .tabs button.on { background: var(--surface2); color: var(--text); }
+  .shots { margin: 28px auto 0; max-width: 1000px; }
+  .shots img { display: none; }
+  .shots img.on { display: block; }
+  .shots .narrow { max-width: 560px; margin: 0 auto; }
+
+  .tech { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 44px; }
+  .tech li { list-style: none; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; font-size: 15.5px; color: var(--muted); }
+  .tech li b { color: var(--text); display: block; font-size: 16px; margin-bottom: 4px; }
+
+  .faq { max-width: 820px; margin: 40px auto 0; }
+  details { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 22px; margin-bottom: 12px; }
+  summary { cursor: pointer; font-weight: 700; font-size: 17px; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+  summary::after { content: "+"; color: var(--accent); font-size: 22px; line-height: 1; }
+  details[open] summary::after { content: "–"; }
+  details p { color: var(--muted); margin-top: 12px; font-size: 15.5px; }
+
+  .final { margin: 120px 0 0; padding: 80px 24px; text-align: center; border-radius: 28px; border: 1px solid #3a2230; background: radial-gradient(600px 300px at 50% 0%, rgba(255,43,94,.25), transparent 70%), var(--surface); }
+  .final img { width: 84px; height: 84px; margin: 0 auto; filter: drop-shadow(0 16px 40px rgba(255,43,94,.5)); }
+  footer { padding: 48px 0 56px; color: var(--subtle); font-size: 14px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  footer a:hover { color: var(--text); }
+
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+
+  @media (max-width: 900px) {
+    .links { display: none; }
+    .pains, .features, .steps, .tech { grid-template-columns: 1fr; }
+    .stage .menu { display: none; }
+    section { padding-top: 80px; }
+    nav .github-btn { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .hero-icon { animation: none; } .reveal { opacity: 1; transform: none; transition: none; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="logo" href="#"><img src="assets/logo-64.png" alt="" /> Tray Killer</a>
+    <div class="links">
+      <a href="#features"><span lang="ko">기능</span><span lang="en">Features</span></a>
+      <a href="#how"><span lang="ko">작동 방식</span><span lang="en">How it works</span></a>
+      <a href="#screens"><span lang="ko">화면</span><span lang="en">Screens</span></a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <div class="nav-right">
+      <div class="lang"><button data-set="ko">KO</button><button data-set="en">EN</button></div>
+      <a class="btn sm github-btn" href="https://github.com/jeiel85/tray-killer">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="grid-bg"></div>
+  <div class="wrap">
+    <span class="badge"><i></i> v1.0.0 · <span lang="ko">무료 · 오픈소스</span><span lang="en">free &amp; open source</span></span>
+    <img class="hero-icon" src="assets/logo-256.png" alt="Tray Killer" />
+    <h1 lang="ko">트레이에 눌러앉은<br /><span class="grad">불청객, 이제 그만.</span></h1>
+    <h1 lang="en">Unwanted tray apps?<br /><span class="grad">Gone. For good.</span></h1>
+    <p class="sub" lang="ko">지정한 앱은 켜지는 순간 종료하고, 다시는 자동 시작하지 못하게 막습니다. 남는 유령 아이콘까지 깨끗하게 치우는 Windows 트레이 청소기예요.</p>
+    <p class="sub" lang="en">Tray Killer closes the apps you pick the moment they start, switches off every way they auto-start, and even wipes the ghost icons they leave behind.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/jeiel85/tray-killer/releases/latest/download/TrayKiller.exe">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg>
+        <span lang="ko">Windows용 다운로드</span><span lang="en">Download for Windows</span>
+      </a>
+      <a class="btn" href="https://github.com/jeiel85/tray-killer"><span lang="ko">GitHub에서 보기</span><span lang="en">View on GitHub</span></a>
+    </div>
+    <p class="meta"><b>Windows 10 · 11</b> &nbsp;·&nbsp; <span lang="ko">약 400 KB · 런타임 설치 불필요 · 자동 업데이트</span><span lang="en">~400 KB · no runtime to install · self-updating</span></p>
+    <div class="stage reveal">
+      <div class="window"><img src="assets/screens/dashboard.png" alt="Tray Killer dashboard" /></div>
+      <img class="menu" src="assets/screens/menu.png" alt="Tray menu" />
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap center reveal">
+    <div class="eyebrow"><span lang="ko">이런 적 있으시죠?</span><span lang="en">Sound familiar?</span></div>
+    <h2 lang="ko">꺼도 꺼도 돌아오는 <span class="grad">그 아이콘.</span></h2>
+    <h2 lang="en">The icon that <span class="grad">keeps coming back.</span></h2>
+    <div class="pains">
+      <div class="pain"><div class="q">🧟</div>
+        <h3 lang="ko">꺼도 다시 살아나요</h3><h3 lang="en">It comes back to life</h3>
+        <p lang="ko">작업 관리자에서 시작 프로그램을 꺼도, 다른 프로그램이 또 실행해요.</p><p lang="en">Disabled in Task Manager, yet another program launches it again.</p></div>
+      <div class="pain"><div class="q">🖱️</div>
+        <h3 lang="ko">우클릭도 안 돼요</h3><h3 lang="en">No right-click menu</h3>
+        <p lang="ko">종료 메뉴조차 없는 아이콘이 트레이 한 자리를 차지하고 있어요.</p><p lang="en">An icon with no exit option, squatting in your tray.</p></div>
+      <div class="pain"><div class="q">👻</div>
+        <h3 lang="ko">죽여도 아이콘이 남아요</h3><h3 lang="en">Ghost icons linger</h3>
+        <p lang="ko">강제 종료하면 마우스를 올릴 때까지 빈 아이콘이 남아 있어요.</p><p lang="en">Force-kill it and an empty icon stays until you hover over it.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap reveal">
+    <div class="center">
+      <div class="eyebrow"><span lang="ko">기능</span><span lang="en">Features</span></div>
+      <h2 lang="ko">한 번 지정하면, <span class="grad">끝까지.</span></h2>
+      <h2 lang="en">Pick it once. <span class="grad">Gone for good.</span></h2>
+    </div>
+    <div class="features">
+      <div class="feature"><div class="ic" style="background:rgba(255,43,94,.13)">⚡</div>
+        <h3 lang="ko">실시간 감시</h3><h3 lang="en">Real-time watch</h3>
+        <p lang="ko">커널 프로세스 이벤트로 시작 즉시 감지해서 종료해요. 아이콘이 뜰 틈도 없어요.</p><p lang="en">Kernel process-start events catch targets instantly — before an icon even appears.</p></div>
+      <div class="feature"><div class="ic" style="background:rgba(255,122,43,.13)">🚫</div>
+        <h3 lang="ko">자동 시작 차단</h3><h3 lang="en">Auto-start blocking</h3>
+        <p lang="ko"><code>Run</code>·<code>RunOnce</code>, 시작프로그램 폴더, 작업 스케줄러, 서비스까지. 다시 등록되면 또 꺼요.</p><p lang="en"><code>Run</code>/<code>RunOnce</code>, Startup folders, Task Scheduler and services — and again if re-registered.</p></div>
+      <div class="feature"><div class="ic" style="background:rgba(167,139,250,.13)">👻</div>
+        <h3 lang="ko">유령 아이콘 제거</h3><h3 lang="en">Ghost icon cleanup</h3>
+        <p lang="ko">종료 직전·직후에 대상 앱의 트레이 아이콘을 대신 지워요(<code>NIM_DELETE</code>).</p><p lang="en">Removes the target's tray icon on its behalf (<code>NIM_DELETE</code>) right before and after killing it.</p></div>
+      <div class="feature"><div class="ic" style="background:rgba(52,211,153,.13)">🏁</div>
+        <h3 lang="ko">가장 먼저 시작</h3><h3 lang="en">Starts first</h3>
+        <p lang="ko">관리자 권한 로그온 작업으로 시작해서, 시작 지연이 걸린 다른 트레이 앱보다 앞서요.</p><p lang="en">An elevated logon task beats every delayed startup app to the tray.</p></div>
+      <div class="feature"><div class="ic" style="background:rgba(96,165,250,.13)">♻️</div>
+        <h3 lang="ko">원클릭 복원</h3><h3 lang="en">One-click restore</h3>
+        <p lang="ko">끈 항목은 모두 백업해요. 복원하면 원래대로 돌아가고, 다시 건드리지 않아요.</p><p lang="en">Everything is backed up. Restore puts it back and leaves it alone.</p></div>
+      <div class="feature"><div class="ic" style="background:rgba(251,191,36,.13)">🔄</div>
+        <h3 lang="ko">자동 업데이트</h3><h3 lang="en">Self-updating</h3>
+        <p lang="ko">GitHub Releases에서 새 버전을 받아 SHA-256을 검증한 뒤 스스로 교체해요.</p><p lang="en">Pulls new versions from GitHub Releases, verifies SHA-256, swaps itself.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap reveal">
+    <div class="center">
+      <div class="eyebrow"><span lang="ko">시작하기</span><span lang="en">Getting started</span></div>
+      <h2 lang="ko">30초면 <span class="grad">끝.</span></h2>
+      <h2 lang="en">Done in <span class="grad">30 seconds.</span></h2>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="n">1</div><h3 lang="ko">받아서 실행</h3><h3 lang="en">Download &amp; run</h3>
+        <p lang="ko">UAC에서 “예” 한 번이면 설치와 자동 시작 등록이 끝나요.</p><p lang="en">One UAC prompt installs it and registers it to start first.</p></div>
+      <div class="step"><div class="n">2</div><h3 lang="ko">앱 고르기</h3><h3 lang="en">Pick the apps</h3>
+        <p lang="ko">트레이에 떠 있는 앱이나 실행 중인 앱에서 고르거나, 이름을 직접 입력해요.</p><p lang="en">Choose from your tray icons or running apps, or type a name.</p></div>
+      <div class="step"><div class="n">3</div><h3 lang="ko">잊어버리기</h3><h3 lang="en">Forget about it</h3>
+        <p lang="ko">이제 Tray Killer가 알아서 지켜요. 무엇을 했는지는 활동 기록에 남아요.</p><p lang="en">Tray Killer takes it from here — every action is in the activity log.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="screens">
+  <div class="wrap center reveal">
+    <div class="eyebrow"><span lang="ko">화면</span><span lang="en">Screens</span></div>
+    <h2 lang="ko">무엇을 했는지 <span class="grad">투명하게.</span></h2>
+    <h2 lang="en">Everything, <span class="grad">in the open.</span></h2>
+    <div class="tabs" role="tablist">
+      <button class="on" data-shot="targets"><span lang="ko">대상 앱</span><span lang="en">Targets</span></button>
+      <button data-shot="activity"><span lang="ko">활동 기록</span><span lang="en">Activity</span></button>
+      <button data-shot="settings"><span lang="ko">설정</span><span lang="en">Settings</span></button>
+      <button data-shot="add"><span lang="ko">앱 추가</span><span lang="en">Add app</span></button>
+    </div>
+    <div class="shots">
+      <div class="window"><img class="on" data-shot="targets" src="assets/screens/targets.png" alt="Targets" loading="lazy" /><img data-shot="activity" src="assets/screens/activity.png" alt="Activity" loading="lazy" /><img data-shot="settings" src="assets/screens/settings.png" alt="Settings" loading="lazy" /></div>
+      <div class="narrow"><img data-shot="add" class="window" src="assets/screens/add.png" alt="Add app" loading="lazy" /></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap reveal">
+    <div class="center">
+      <div class="eyebrow"><span lang="ko">내부 동작</span><span lang="en">Under the hood</span></div>
+      <h2 lang="ko">가볍고, <span class="grad">단단하게.</span></h2>
+      <h2 lang="en">Small and <span class="grad">sturdy.</span></h2>
+    </div>
+    <ul class="tech">
+      <li><b>.NET Framework 4.8 · WPF</b><span lang="ko">Windows에 기본으로 들어 있는 런타임이라 따로 설치할 게 없어요. exe 하나 400 KB, 로그온 직후에도 바로 떠요.</span><span lang="en">The runtime ships with Windows. One 400 KB exe that starts instantly at logon.</span></li>
+      <li><b>Task Scheduler · HighestAvailable</b><span lang="ko">로그온 트리거, 우선순위 4, 실패하면 자동 재시작. 처음 한 번 UAC를 승인한 뒤로는 프롬프트가 뜨지 않아요.</span><span lang="en">Logon trigger, priority 4, restart on failure. No prompts after the first UAC approval.</span></li>
+      <li><b>Win32_ProcessStartTrace</b><span lang="ko">커널 기반 프로세스 시작 이벤트를 써요. 관리자 권한이 없으면 1초 간격 WMI 폴링으로 대신해요.</span><span lang="en">Kernel-backed process start events, with a 1 s WMI polling fallback without admin rights.</span></li>
+      <li><b>Shell_NotifyIcon(NIM_DELETE)</b><span lang="ko">대상 프로세스의 창 핸들로 아이콘을 먼저 걷어 내기 때문에 유령 아이콘이 남지 않아요.</span><span lang="en">Removes icons through the target's window handles first, so no ghosts remain.</span></li>
+      <li><b>Backup &amp; restore</b><span lang="ko">레지스트리 값, 바로가기 파일, 작업 상태, 서비스 시작 유형을 원래 값 그대로 보관해요.</span><span lang="en">Keeps original registry values, shortcut files, task state and service start types.</span></li>
+      <li><b>Guard rails</b><span lang="ko"><code>explorer.exe</code>·<code>svchost.exe</code>·<code>csrss.exe</code> 등 핵심 프로세스는 와일드카드로도 지정할 수 없어요.</span><span lang="en">Core processes like <code>explorer.exe</code>, <code>svchost.exe</code>, <code>csrss.exe</code> can't be targeted.</span></li>
+    </ul>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap reveal">
+    <div class="center"><div class="eyebrow">FAQ</div>
+      <h2 lang="ko">자주 묻는 질문</h2><h2 lang="en">Questions</h2></div>
+    <div class="faq">
+      <details><summary><span lang="ko">엉뚱한 프로그램을 종료하면 어떡하죠?</span><span lang="en">What if it kills the wrong thing?</span></summary>
+        <p lang="ko">지정한 실행 파일 이름만 건드리고, Windows 핵심 프로세스는 보호돼요. 자동 시작 항목은 지우지 않고 백업한 뒤 끄기 때문에 언제든 원래대로 돌릴 수 있어요.</p>
+        <p lang="en">It only touches the executable names you choose, and core Windows processes are protected. Startup items are backed up, not deleted, so you can always restore them.</p></details>
+      <details><summary><span lang="ko">관리자 권한이 꼭 필요한가요?</span><span lang="en">Does it need admin rights?</span></summary>
+        <p lang="ko">없어도 동작해요(제한 모드). 다만 관리자 권한으로 뜨는 앱, HKLM 시작 항목, 서비스까지 처리하려면 필요해요. 처음에 UAC를 한 번 승인하면 이후에는 작업 스케줄러가 프롬프트 없이 실행해 줘요.</p>
+        <p lang="en">It works without them in limited mode, but elevated apps, HKLM entries and services need them. After one UAC approval, Task Scheduler launches it elevated without prompts.</p></details>
+      <details><summary><span lang="ko">자동 업데이트는 안전한가요?</span><span lang="en">Is the auto-update safe?</span></summary>
+        <p lang="ko">이 저장소의 GitHub Releases에서만 받고, 함께 올라간 SHA-256 해시가 일치해야 교체해요. 창이 열려 있을 때는 자동으로 교체하지 않고, 설정에서 끌 수도 있어요.</p>
+        <p lang="en">It only downloads from this repo's GitHub Releases and swaps itself only if the published SHA-256 matches. It won't update while the window is open, and you can turn it off.</p></details>
+      <details><summary><span lang="ko">어떻게 제거하나요?</span><span lang="en">How do I uninstall it?</span></summary>
+        <p lang="ko">설정 → 제거, 또는 Windows 설정 → 앱에서 지우면 돼요. 차단했던 항목은 모두 원래대로 복원돼요.</p>
+        <p lang="en">Settings → Uninstall, or Windows Settings → Apps. Everything it blocked is restored.</p></details>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="final reveal">
+    <img src="assets/logo-256.png" alt="" />
+    <h2 lang="ko" style="margin-top:22px">트레이를 <span class="grad">되찾으세요.</span></h2>
+    <h2 lang="en" style="margin-top:22px">Take your tray <span class="grad">back.</span></h2>
+    <p class="lead" lang="ko">무료 · 오픈소스(MIT) · Windows 10/11</p><p class="lead" lang="en">Free · open source (MIT) · Windows 10/11</p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/jeiel85/tray-killer/releases/latest/download/TrayKiller.exe"><span lang="ko">TrayKiller.exe 다운로드</span><span lang="en">Download TrayKiller.exe</span></a>
+      <a class="btn" href="https://github.com/jeiel85/tray-killer/releases"><span lang="ko">릴리스 노트</span><span lang="en">Release notes</span></a>
+    </div>
+  </div>
+  <footer>
+    <span>© 2026 jeiel85 · MIT License</span>
+    <span><a href="https://github.com/jeiel85/tray-killer">GitHub</a> &nbsp;·&nbsp; <a href="https://github.com/jeiel85/tray-killer/issues"><span lang="ko">이슈 제보</span><span lang="en">Report an issue</span></a></span>
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    function setLang(l) {
+      root.setAttribute('data-lang', l);
+      root.setAttribute('lang', l);
+      try { localStorage.setItem('tk-lang', l); } catch (e) {}
+    }
+    var saved = null;
+    try { saved = localStorage.getItem('tk-lang'); } catch (e) {}
+    setLang(saved || ((navigator.language || 'ko').toLowerCase().indexOf('ko') === 0 ? 'ko' : 'en'));
+    document.querySelectorAll('.lang button').forEach(function (b) {
+      b.addEventListener('click', function () { setLang(b.getAttribute('data-set')); });
+    });
+
+    var tabs = document.querySelectorAll('.tabs button');
+    tabs.forEach(function (t) {
+      t.addEventListener('click', function () {
+        var k = t.getAttribute('data-shot');
+        tabs.forEach(function (x) { x.classList.toggle('on', x === t); });
+        document.querySelectorAll('.shots img').forEach(function (i) { i.classList.toggle('on', i.getAttribute('data-shot') === k); });
+        document.querySelector('.shots > .window').style.display = k === 'add' ? 'none' : '';
+      });
+    });
+
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+      }, { threshold: 0.12 });
+      document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+    } else {
+      document.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('in'); });
+    }
+  })();
+</script>
+</body>
+</html>

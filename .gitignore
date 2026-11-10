@@ -1,0 +1,15 @@
+# Build output
+bin/
+obj/
+dist/
+*.user
+*.suo
+.vs/
+*_wpftmp.csproj
+
+# Local tooling
+tools/**/*.exe
+*.log
+
+# Rendered promo images (share, don't commit)
+promo/out/

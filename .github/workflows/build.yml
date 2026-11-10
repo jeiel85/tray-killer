@@ -1,0 +1,22 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['docs/**', 'promo/**', '**.md']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: microsoft/setup-msbuild@v2
+      - name: Build
+        shell: pwsh
+        run: ./build.ps1 -Version 0.0.0 -UseRefPackages
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TrayKiller
+          path: dist/
