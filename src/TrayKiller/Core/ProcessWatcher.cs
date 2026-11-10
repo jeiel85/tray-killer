@@ -25,16 +25,17 @@ namespace TrayKiller.Core
             {
                 wanted = true;
                 if (IsRunning || disposed) return;
-                if (elevated && TryStart(new WqlEventQuery("SELECT ProcessID, ProcessName FROM Win32_ProcessStartTrace"), true)) return;
-                TryStart(new WqlEventQuery("__InstanceCreationEvent", TimeSpan.FromSeconds(1), "TargetInstance ISA 'Win32_Process'"), false);
+                if (elevated && TryStart(() => new WqlEventQuery("SELECT * FROM Win32_ProcessStartTrace"), true)) return;
+                TryStart(() => new WqlEventQuery("__InstanceCreationEvent", TimeSpan.FromSeconds(1), "TargetInstance ISA 'Win32_Process'"), false);
             }
         }
 
-        bool TryStart(WqlEventQuery query, bool trace)
+        bool TryStart(Func<WqlEventQuery> makeQuery, bool trace)
         {
-            var w = new ManagementEventWatcher(new ManagementScope(@"\\.\root\cimv2"), query);
+            ManagementEventWatcher w = null;
             try
             {
+                w = new ManagementEventWatcher(new ManagementScope(@"\\.\root\cimv2"), makeQuery());
                 w.EventArrived += OnEvent;
                 w.Stopped += OnStopped;
                 w.Start();
@@ -48,7 +49,7 @@ namespace TrayKiller.Core
             catch (Exception ex)
             {
                 Log.Warn("Process watcher (" + (trace ? "trace" : "poll") + ") failed: " + ex.Message);
-                try { w.Dispose(); } catch { }
+                try { w?.Dispose(); } catch { }
                 return false;
             }
         }

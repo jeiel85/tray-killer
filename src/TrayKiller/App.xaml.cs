@@ -108,7 +108,8 @@ namespace TrayKiller
             Updates = new AutoUpdater(this, Engine);
             Tray = new TrayIconHost(this, Engine);
             Engine.Killed += OnKilled;
-            Engine.Start();
+            // A failure in one subsystem must not leave the app half-started (no window, no command channel).
+            try { Engine.Start(); } catch (Exception ex) { Log.Error("engine start", ex); }
             Updates.Start();
             SessionEnding += (s, ev) => ExitApp();
             InstanceChannel.Listen(cmd => Dispatcher.BeginInvoke(new Action(() => HandleCommand(cmd))));

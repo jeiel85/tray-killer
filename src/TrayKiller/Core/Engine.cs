@@ -84,8 +84,13 @@ namespace TrayKiller.Core
 
         void ApplyWatcher()
         {
-            if (Settings.RealtimeWatch && !Settings.Paused && compiled.Count > 0) watcher.Start(AppInfo.IsElevated);
-            else watcher.Stop();
+            // The watcher is an optimisation on top of sweeps — it must never take the app down.
+            try
+            {
+                if (Settings.RealtimeWatch && !Settings.Paused && compiled.Count > 0) watcher.Start(AppInfo.IsElevated);
+                else watcher.Stop();
+            }
+            catch (Exception ex) { Log.Error("process watcher", ex); }
         }
 
         /// <summary>Adds a rule. Returns an error message, or null on success.</summary>
