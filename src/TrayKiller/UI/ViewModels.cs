@@ -260,7 +260,7 @@ namespace TrayKiller.UI
                 string error = null;
                 // Test profiles (--profile x) never touch the real startup registration.
                 bool ok = !AppPaths.IsDefaultProfile
-                    || (value ? StartupManager.Enable(AppInfo.ExePath, out error) : StartupManager.Disable(out error));
+                    || StartupManager.Apply(AppInfo.ExePath, value, out error);
                 if (ok)
                 {
                     S.StartWithWindows = value;
@@ -279,7 +279,7 @@ namespace TrayKiller.UI
 
         public void LoadStartupState() => ui.BeginInvoke(new Action(() =>
         {
-            startWithWindows = AppPaths.IsDefaultProfile ? StartupManager.IsEnabled() : S.StartWithWindows;
+            startWithWindows = AppPaths.IsDefaultProfile ? StartupManager.IsEnabled(S.StartWithWindows) : S.StartWithWindows;
             Raise(nameof(StartWithWindows));
             Raise(nameof(StartupNote));
         }), DispatcherPriority.Background);

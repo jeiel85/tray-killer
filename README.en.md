@@ -64,11 +64,24 @@ You disable it in Task Manager — it's back tomorrow. You right-click the icon 
 ## Install
 
 1. [**Download TrayKiller.exe**](https://github.com/jeiel85/tray-killer/releases/latest/download/TrayKiller.exe) (~400 KB).
-2. Run it and approve **one UAC prompt**. It installs to `%LOCALAPPDATA%\Programs\TrayKiller` and registers itself in the Start menu and Apps list.
+2. Run it and approve **one UAC prompt**. It installs to `C:\Program Files\TrayKiller` and registers itself in the Start menu and Apps list.
 3. Click **Add app** and pick what you want gone.
 
 Requires Windows 10 1903+ or Windows 11. It runs on .NET Framework 4.8, which ships with Windows, so there's nothing else to install.
 Uninstall from *Settings → Uninstall* or *Windows Settings → Apps*. Everything it blocked is restored.
+
+## Security design
+
+Tray Killer runs elevated, so it is built so that **no unprivileged program can use it as a stepping stone**:
+
+- The exe the elevated logon task runs lives in `Program Files` (admin-only). v1.0.x installed into the user profile; v1.1.0 migrates automatically.
+- Settings and restore data, which drive privileged actions, live in an admin-only folder: `C:\ProgramData\TrayKiller\<user SID>`. A pre-created or link-replaced folder is not trusted.
+- Every restore is re-validated against the locations Tray Killer blocks (Run keys, Startup folders, tray settings …).
+- Nothing is moved in or out of user-writable folders while elevated. Per-user Startup items are switched off with the `StartupApproved` flag, as Task Manager does, and clean-up never follows junctions or symlinks.
+- Least privilege: the command channel is restricted to the current user, other users' sessions are left alone, `SeDebugPrivilege` is only held for a single kill when needed, and URLs and folders open unelevated.
+- Updates: only this repo's release download URLs are accepted, and both SHA-256 and file version must match.
+
+Please report vulnerabilities privately, as described in [SECURITY.md](SECURITY.md).
 
 ## Build
 

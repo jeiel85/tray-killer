@@ -28,9 +28,6 @@ namespace TrayKiller.UI
 
         void Uninstall_Click(object sender, RoutedEventArgs e) => App.BeginUninstall();
 
-        static void Open(string target)
-        {
-            try { Process.Start(new ProcessStartInfo(target) { UseShellExecute = true }); } catch { }
-        }
+        static void Open(string target) => ShellOpen.Unelevated(target);
     }
 }

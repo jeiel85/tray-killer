@@ -246,7 +246,14 @@ namespace TrayKiller.Core
                 {
                     if (p.Id == AppInfo.Pid || p.Id <= 4) continue;
                     string name;
-                    try { name = p.ProcessName + ".exe"; } catch { continue; }
+                    try
+                    {
+                        // Only this user's desktop session — never other signed-in users (or services, which
+                        // are handled through "disable services").
+                        if (p.SessionId != AppInfo.SessionId) continue;
+                        name = p.ProcessName + ".exe";
+                    }
+                    catch { continue; }
                     var rule = Matcher.Find(rules, name, r => r.Rule.KillProcess);
                     if (rule != null) KillOne(p.Id, name, rule, false);
                 }
@@ -260,6 +267,8 @@ namespace TrayKiller.Core
                 if (Settings.Paused || pid == AppInfo.Pid) return;
                 var rules = compiled;
                 if (rules.Count == 0) return;
+                int session;
+                if (!Native.ProcessIdToSessionId(pid, out session) || session != AppInfo.SessionId) return;
                 // Trace events can truncate long image names, so prefer the real path.
                 var path = ProcessTools.GetImagePath(pid);
                 var name = path != null ? Path.GetFileName(path) : rawName;

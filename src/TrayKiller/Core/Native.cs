@@ -86,6 +86,9 @@ namespace TrayKiller.Core
         [DllImport("kernel32.dll")]
         public static extern bool CloseHandle(IntPtr handle);
 
+        [DllImport("kernel32.dll")]
+        public static extern bool ProcessIdToSessionId(int processId, out int sessionId);
+
         [DllImport("dwmapi.dll")]
         public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 

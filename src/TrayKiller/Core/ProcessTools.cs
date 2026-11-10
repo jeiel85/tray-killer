@@ -42,10 +42,13 @@ namespace TrayKiller.Core
             }
             try
             {
-                using (var p = Process.GetProcessById(pid))
+                try { TerminateAndWait(pid); }
+                catch (Win32Exception denied) when (denied.NativeErrorCode == 5 && AppInfo.IsElevated)
                 {
-                    p.Kill();
-                    p.WaitForExit(3000);
+                    // Some processes deny PROCESS_TERMINATE even to admins. Hold SeDebugPrivilege only for this one call.
+                    Process.EnterDebugMode();
+                    try { TerminateAndWait(pid); }
+                    finally { Process.LeaveDebugMode(); }
                 }
             }
             catch (ArgumentException) { return KillResult.Gone; }
@@ -64,6 +67,15 @@ namespace TrayKiller.Core
                 TrayCleaner.RefreshLegacyArea();
             }
             return KillResult.Killed;
+        }
+
+        static void TerminateAndWait(int pid)
+        {
+            using (var p = Process.GetProcessById(pid))
+            {
+                p.Kill();
+                p.WaitForExit(3000);
+            }
         }
     }
 

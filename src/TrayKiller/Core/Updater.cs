@@ -40,6 +40,11 @@ namespace TrayKiller.Core
 
         public static Version Current => new Version(AppInfo.Version.Major, AppInfo.Version.Minor, Math.Max(0, AppInfo.Version.Build));
 
+        /// <summary>Assets are only ever taken from this repository's own release downloads.</summary>
+        static readonly string AssetPrefix = "https://github.com/" + AppInfo.Owner + "/" + AppInfo.Repo + "/releases/download/";
+
+        static bool IsOurAsset(string url) => url != null && url.StartsWith(AssetPrefix, StringComparison.OrdinalIgnoreCase);
+
         public static Version ParseTag(string tag)
         {
             Version v;
@@ -69,6 +74,7 @@ namespace TrayKiller.Core
                 {
                     var name = a["name"] as string;
                     var url = a["browser_download_url"] as string;
+                    if (!IsOurAsset(url)) continue;
                     if (string.Equals(name, AppInfo.ExeName, StringComparison.OrdinalIgnoreCase)) info.ExeUrl = url;
                     else if (string.Equals(name, AppInfo.ExeName + ".sha256", StringComparison.OrdinalIgnoreCase)) info.ShaUrl = url;
                 }
@@ -94,6 +100,14 @@ namespace TrayKiller.Core
 
             var file = Path.Combine(AppPaths.UpdateDir, "TrayKiller-" + u.Version + ".exe");
             File.WriteAllBytes(file, bytes);
+
+            // The file must really be the Tray Killer version the release claims to be.
+            var v = FileVersionInfo.GetVersionInfo(file);
+            if (v.ProductName != AppInfo.Name || new Version(v.FileMajorPart, v.FileMinorPart, v.FileBuildPart) != u.Version)
+            {
+                try { File.Delete(file); } catch { }
+                throw new InvalidDataException("Downloaded file is not Tray Killer v" + u.Version + ".");
+            }
             return file;
         }
 

@@ -133,16 +133,19 @@ namespace TrayKiller.Core
         }
 
         // ── Startup folders ────────────────────────────────────────────────────────────────
+        static string UserStartup => Environment.GetFolderPath(Environment.SpecialFolder.Startup);
+        static string CommonStartup => Environment.GetFolderPath(Environment.SpecialFolder.CommonStartup);
+        const string ApprovedStartupFolder = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\StartupFolder";
+        public const string MethodApproved = "approved";
+
         void EnforceStartupFolders(IList<CompiledRule> rules)
         {
-            var folders = new[]
-            {
-                Environment.GetFolderPath(Environment.SpecialFolder.Startup),
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonStartup)
-            };
-            foreach (var dir in folders)
+            foreach (var dir in new[] { UserStartup, CommonStartup })
             {
                 if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) continue;
+                // The per-user folder is writable by the user: an elevated process must not move files
+                // in or out of it (links could redirect the move). Disable entries the way Task Manager does.
+                bool userFolder = string.Equals(dir, UserStartup, StringComparison.OrdinalIgnoreCase);
                 string[] files;
                 try { files = Directory.GetFiles(dir); } catch { continue; }
                 foreach (var file in files)
@@ -166,6 +169,23 @@ namespace TrayKiller.Core
                         Kind = BlockKind.StartupFile, Location = dir, Name = Path.GetFileName(file), Detail = target, FilePath = file
                     };
                     if (rule.Allow.Contains(item.Key)) continue;
+                    if (userFolder)
+                    {
+                        try
+                        {
+                            using (var k = Registry.CurrentUser.CreateSubKey(ApprovedStartupFolder))
+                            {
+                                var current = k.GetValue(item.Name) as byte[];
+                                if (current != null && current.Length > 0 && (current[0] & 1) == 1) continue; // already disabled
+                                item.Method = MethodApproved;
+                                item.ValueData = current == null ? null : Convert.ToBase64String(current);
+                                k.SetValue(item.Name, DisabledStamp(), RegistryValueKind.Binary);
+                            }
+                            Record(rule, item);
+                        }
+                        catch (Exception ex) { Log.Warn("Disable startup entry " + item.Name + ": " + ex.Message); }
+                        continue;
+                    }
                     try
                     {
                         var backupDir = Path.Combine(AppPaths.BackupDir, "startup");
@@ -180,6 +200,15 @@ namespace TrayKiller.Core
                     }
                 }
             }
+        }
+
+        /// <summary>StartupApproved value meaning "disabled" (0x03) plus the time it was changed.</summary>
+        static byte[] DisabledStamp()
+        {
+            var b = new byte[12];
+            b[0] = 0x03;
+            BitConverter.GetBytes(DateTime.UtcNow.ToFileTimeUtc()).CopyTo(b, 4);
+            return b;
         }
 
         // ── Win11 tray icon visibility ─────────────────────────────────────────────────────
@@ -346,6 +375,9 @@ namespace TrayKiller.Core
             error = null;
             try
             {
+                // Restore data drives privileged writes, so every item is checked against the
+                // places Tray Killer itself would ever have blocked — whatever the file says.
+                Validate(it);
                 switch (it.Kind)
                 {
                     case BlockKind.Registry:
@@ -353,18 +385,22 @@ namespace TrayKiller.Core
                         var view = (RegistryView)Enum.Parse(typeof(RegistryView), it.View);
                         using (var b = RegistryKey.OpenBaseKey(hive, view))
                         using (var k = b.CreateSubKey(it.KeyPath))
-                            k.SetValue(it.Name, it.ValueData, (RegistryValueKind)it.ValueKind);
+                            k.SetValue(it.Name, it.ValueData, it.ValueKind == (int)RegistryValueKind.ExpandString ? RegistryValueKind.ExpandString : RegistryValueKind.String);
+                        break;
+
+                    case BlockKind.StartupFile when it.Method == MethodApproved:
+                        using (var k = Registry.CurrentUser.CreateSubKey(ApprovedStartupFolder))
+                        {
+                            if (it.ValueData == null) k.DeleteValue(it.Name, false);
+                            else k.SetValue(it.Name, Convert.FromBase64String(it.ValueData), RegistryValueKind.Binary);
+                        }
                         break;
 
                     case BlockKind.StartupFile:
                         if (File.Exists(it.BackupPath))
                         {
                             if (File.Exists(it.FilePath)) File.Delete(it.BackupPath);
-                            else
-                            {
-                                Directory.CreateDirectory(Path.GetDirectoryName(it.FilePath));
-                                File.Move(it.BackupPath, it.FilePath);
-                            }
+                            else File.Move(it.BackupPath, it.FilePath);
                         }
                         break;
 
@@ -381,7 +417,8 @@ namespace TrayKiller.Core
 
                     case BlockKind.Service:
                         string err;
-                        if (!SetServiceStart(it.ServiceName, it.OldValue < 0 ? 3 : it.OldValue, out err))
+                        // Only ever put a service back to Automatic (2) or Manual (3).
+                        if (!SetServiceStart(it.ServiceName, it.OldValue == 2 ? 2 : 3, out err))
                             throw new InvalidOperationException(err);
                         break;
 
@@ -405,6 +442,46 @@ namespace TrayKiller.Core
                 Log.Error("Restore " + it.Key, ex);
                 return false;
             }
+        }
+
+        static void Validate(BlockedItem it)
+        {
+            bool ok;
+            switch (it.Kind)
+            {
+                case BlockKind.Registry:
+                    ok = RunKeys.Any(d => d.Hive.ToString() == it.Hive && d.View.ToString() == it.View && d.Path == it.KeyPath)
+                         && !string.IsNullOrEmpty(it.Name)
+                         && (it.ValueKind == (int)RegistryValueKind.String || it.ValueKind == (int)RegistryValueKind.ExpandString);
+                    break;
+                case BlockKind.StartupFile when it.Method == MethodApproved:
+                    ok = !string.IsNullOrEmpty(it.Name) && it.Name.IndexOfAny(new[] { '\\', '/' }) < 0;
+                    break;
+                case BlockKind.StartupFile:
+                    // A moved file may only come back from our own backup folder into a Startup folder, through no links.
+                    var startupDir = Path.GetDirectoryName(Path.GetFullPath(it.FilePath ?? ""));
+                    var backup = Path.GetFullPath(it.BackupPath ?? "");
+                    bool common = string.Equals(startupDir, CommonStartup, StringComparison.OrdinalIgnoreCase);
+                    bool user = string.Equals(startupDir, UserStartup, StringComparison.OrdinalIgnoreCase);
+                    ok = (common || user)
+                         && backup.StartsWith(Path.Combine(AppPaths.BackupDir, "startup") + "\\", StringComparison.OrdinalIgnoreCase)
+                         && !SafeFs.IsReparse(backup)
+                         && (common || SafeFs.NoLinksBetween(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), startupDir));
+                    break;
+                case BlockKind.TrayIcon:
+                    ok = !string.IsNullOrEmpty(it.Name) && it.Name.All(char.IsDigit);
+                    break;
+                case BlockKind.Task:
+                    ok = !string.IsNullOrEmpty(it.TaskPath) && it.TaskPath.StartsWith("\\");
+                    break;
+                case BlockKind.Service:
+                    ok = !string.IsNullOrEmpty(it.ServiceName) && it.ServiceName.IndexOfAny(new[] { '\\', '/' }) < 0;
+                    break;
+                default:
+                    ok = false;
+                    break;
+            }
+            if (!ok) throw new InvalidOperationException(Loc.T("err.untrustedItem"));
         }
     }
 }
